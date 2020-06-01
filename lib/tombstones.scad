@@ -53,9 +53,6 @@ module roundedTombstone(height=70, width=40, thickness=6, inset=2) {
     w = width/2;
     r = thickness/2;
     foo = w - r;
-    echo("w = ", w);
-    echo("r = ", r);
-    echo("foo = ",foo);
     rotate([90,0,0])
     translate([0,height-w,0])
     union() {

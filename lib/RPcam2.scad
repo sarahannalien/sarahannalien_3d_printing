@@ -88,7 +88,9 @@ module Raspberry_Pi_Camera_v21(
     cameraDiameter = RPcam2_cameraDiameter,
     cameraCylinderThickness = RPcam2_cameraCylinderThickness,
     cameraXOffset = RPcam2_cameraXOffset,
-    cameraYOffset = RPcam2_cameraYOffset
+    cameraYOffset = RPcam2_cameraYOffset,
+    cutout = false,
+    cutoutTolerance = 1  // make cutout 1mm bigger for tolerance.
     
 ) {
     pcbThickness = pcbBoardThickness - pcbMaskThickness;
@@ -120,25 +122,49 @@ module Raspberry_Pi_Camera_v21(
         }
     }
     
-    module camera() {
+    module pcbCutout() {
+        zz = 20;
+        translate([0,0, (pcbBoardThickness/2) + (pcbMaskThickness/2)])
+        translate([0,0,-(zz/2)])
+            cube([width + cutoutTolerance, 
+                height + cutoutTolerance, zz], center=true);
+    }
+    
+    module camera(camCylThickness) {
+        ctol = cutout ? cutoutTolerance : 0;
         translate([cameraXOffset,cameraYOffset,
             (pcbThickness/2)+(cameraCubeThickness/2) ])
         union() {
             color("DarkSlateGray")
-                cube([cameraWidth, cameraHeight, cameraCubeThickness],center=true);
-            translate([0,0,(cameraCubeThickness/2)+(cameraCylinderThickness/2)]) 
+                cube([cameraWidth + cutoutTolerance, 
+                    cameraHeight + cutoutTolerance, 
+            cameraCubeThickness],center=true);
+            translate([0,0,(cameraCubeThickness/2)+(camCylThickness/2)]) 
                 color("Gray")
-                    cylinder(d=cameraDiameter, h=cameraCylinderThickness, 
+                    cylinder(d=cameraDiameter, h=camCylThickness + ctol, 
                         center=true);
         }
     }
         
-    union() {
-        pcb();
-        camera();
+    if (cutout) {
+        union() {
+            camera(camCylThickness=20);
+            pcbCutout();
+        }
+    } else {
+        union() {
+            pcb();
+            camera(camCylThickness=cameraCylinderThickness);
+        }
     }
 
 }
 
 // instantiate an example
-Raspberry_Pi_Camera_v21($fn=36);
+//Raspberry_Pi_Camera_v21($fn=36);
+
+difference() {
+    translate([0,0,5]) cube([40,40,10],center=true);
+    translate([0,0,1])Raspberry_Pi_Camera_v21(cutout=true, $fn=36);
+}
+
