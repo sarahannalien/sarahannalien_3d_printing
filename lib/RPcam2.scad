@@ -95,17 +95,24 @@ module Raspberry_Pi_Camera_v21(
     j2Width2 = 9,
     j2Length1 = 3.5,
     j2Length2 = 4.5,
-    j2Thickness = 1.5
+    j2Thickness = 1.5,
+    depthToCutOut = 20,    // arbitrary depth when cutting hole for camera pcb
+    mountingHoleDepth = 4  // whem mounting holes are cut out
     
 ) {
     pcbThickness = pcbBoardThickness - pcbMaskThickness;
     
     module mountingHole(side, holesPos) {
-        translate([((width/2)-mountingHoleToEdge)*side,(height/2)-holesPos,0])
-            cylinder(d=mountingHoleDiameter, h=9999, center=true);
+        mhd = cutout ? mountingHoleDepth : pcbBoardThickness;
+        mhmd = cutout ? mountingHoleDiameter : mountingHoleMaskDiameter;
+        translate([
+                ((width/2)-mountingHoleToEdge)*side,
+                (height/2)-holesPos,
+                mhd/2])
+            cylinder(d=mountingHoleDiameter, h=mhd, center=true);
         translate([((width/2)-mountingHoleToEdge)*side,(height/2)-holesPos,
                 (pcbBoardThickness/2)+(pcbMaskThickness/2)])
-            cylinder(d=mountingHoleMaskDiameter, h=pcbMaskThickness*2, center=true);
+            cylinder(d=mhmd, h=pcbMaskThickness*2, center=true);
     }
     
     module mountingHoles() {
@@ -131,7 +138,7 @@ module Raspberry_Pi_Camera_v21(
         }
     }
     
-    module pcbCutout(depthToCutOut = 20) {
+    module pcbCutout() {
         translate([0,0, (pcbBoardThickness/2)])
         translate([0,0,-(depthToCutOut/2)])
             cube([width + cutoutTolerance, 
@@ -141,22 +148,23 @@ module Raspberry_Pi_Camera_v21(
     // little thingy that connects camera module to the PCB
     module j2Connector() {
         ctol = cutout ? cutoutTolerance : 0;
-        j2t = cutout ? j2Thickness + pcbThickness : j2Thickness;
+        j2t = cutout ? j2Thickness + pcbThickness + ctol : j2Thickness;
         color("Gray")
         translate([
                 cameraXOffset,
-                cameraYOffset + (cameraHeight/2) + (j2Length1/2),
+                cameraYOffset + (cameraHeight/2) + (j2Length1/2) + ctol/2,
                 //(pcbThickness/2)+(cameraCubeThickness/2) ])
                 (cameraCubeThickness/2) - (j2t/2)])
-            cube([j2Width1, j2Length1, j2t], center=true);
+            cube([j2Width1+ctol, j2Length1+ctol, j2t], center=true);
         
         color("Gray")
         translate([
-                cameraXOffset - (j2Width2-j2Width1)/2,
-                cameraYOffset + (cameraHeight/2) + (j2Length1/2) + (j2Length2/2),
+                cameraXOffset - ((j2Width2+ctol)-(j2Width1+ctol))/2,
+                cameraYOffset + (cameraHeight/2) + (j2Length1/2) + (j2Length2/2) 
+                    + (ctol/2) + (ctol/2),
                 //(pcbThickness/2)+(cameraCubeThickness/2) ])
                 (cameraCubeThickness/2) - (j2t/2)])
-            cube([j2Width2*1, j2Length2*1, j2t*1],center=true);
+            cube([j2Width2+ctol, j2Length2+ctol, j2t*1],center=true);
         
     }
     
@@ -171,7 +179,7 @@ module Raspberry_Pi_Camera_v21(
             cameraCubeThickness],center=true);
             translate([0,0,(cameraCubeThickness/2)+(camCylThickness/2)]) 
                 color("Gray")
-                    cylinder(d=cameraDiameter, h=camCylThickness + ctol, 
+                    cylinder(d=cameraDiameter + ctol, h=camCylThickness + ctol, 
                         center=true);
         }
     }
@@ -187,6 +195,7 @@ module Raspberry_Pi_Camera_v21(
         union() {
             pcb();
             camera(camCylThickness=cameraCylinderThickness);
+            j2Connector();
         }
     }
 
@@ -195,8 +204,8 @@ module Raspberry_Pi_Camera_v21(
 // instantiate an example
 //Raspberry_Pi_Camera_v21($fn=36);
 
-difference() {
-    translate([0,0,5]) cube([40,40,10],center=true);
+rotate([180,0,0]) difference() {
+    translate([0,0,3.5]) cube([30,30,7],center=true);
     translate([0,0,1])Raspberry_Pi_Camera_v21(cutout=true, $fn=36);
 }
 
