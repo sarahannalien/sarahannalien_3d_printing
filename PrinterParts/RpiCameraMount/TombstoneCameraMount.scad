@@ -2,8 +2,8 @@ use <../../lib/tombstones.scad>
 use <../../lib/RPCam2.scad>
 
 module TombstoneCameraMount(
-    width=40, 
-    height=80,
+    width=43, 
+    height=82,
     thickness = 10,
     inset = 2,
     extrusionSize=20,
@@ -36,7 +36,7 @@ module TombstoneCameraMount(
     
     // Cutout for Raspberry pi centered on the lens.
     module rpiCamCutout() {
-        rotate([90,0,0]) cylinder(d=10, h=100, center=true);
+        rotate([90,0,0]) Raspberry_Pi_Camera_v21(cutout=true, $fn=36);
     }
     
     difference() {
@@ -49,7 +49,7 @@ module TombstoneCameraMount(
                     inset=inset);
             translate([0,0,mountingTabThickness/2]) mountingTabs();
         }
-        translate([0,0,lensHeight]) rpiCamCutout();
+        translate([0,2,lensHeight]) rpiCamCutout();
     }
 }
 
