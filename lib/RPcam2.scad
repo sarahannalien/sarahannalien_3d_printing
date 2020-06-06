@@ -103,13 +103,15 @@ module Raspberry_Pi_Camera_v21(
     pcbThickness = pcbBoardThickness - pcbMaskThickness;
     
     module mountingHole(side, holesPos) {
+        // make holes smaller in cutout so we can thread screws into them
+        mhDiam = cutout ? mountingHoleDiameter * 0.8 : mountingHoleDiameter;
         mhd = cutout ? mountingHoleDepth : pcbBoardThickness;
-        mhmd = cutout ? mountingHoleDiameter : mountingHoleMaskDiameter;
+        mhmd = cutout ? mhDiam : mountingHoleMaskDiameter;
         translate([
                 ((width/2)-mountingHoleToEdge)*side,
                 (height/2)-holesPos,
                 mhd/2])
-            cylinder(d=mountingHoleDiameter, h=mhd, center=true);
+            cylinder(d=mhDiam, h=mhd, center=true);
         translate([((width/2)-mountingHoleToEdge)*side,(height/2)-holesPos,
                 (pcbBoardThickness/2)+(pcbMaskThickness/2)])
             cylinder(d=mhmd, h=pcbMaskThickness*2, center=true);
@@ -176,7 +178,7 @@ module Raspberry_Pi_Camera_v21(
             color("DarkSlateGray")
                 cube([cameraWidth + cutoutTolerance, 
                     cameraHeight + cutoutTolerance, 
-            cameraCubeThickness],center=true);
+                    cameraCubeThickness],center=true);
             translate([0,0,(cameraCubeThickness/2)+(camCylThickness/2)]) 
                 color("Gray")
                     cylinder(d=cameraDiameter + ctol, h=camCylThickness + ctol, 
