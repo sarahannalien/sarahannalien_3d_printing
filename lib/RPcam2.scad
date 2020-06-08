@@ -29,48 +29,7 @@
 //  SOFTWARE.
 //  
 
-// basic width of the camera board
-RPcam2_width = 25.27;
-
-// basic height of the camera board
-RPcam2_height = 23.9;
-
-// basic thickness of the camera board
-RPcam2_pcbBoardThickness = 1.1;
-
-// diameter of mounting holes plus a little extra tolerance
-RPcam2_mountingHoleDiameter = 2.4;
-
-// edge of board to center of mounting hole
-RPcam2_mountingHoleToEdge = 2.0; 
-
-// offset for upper mounting holes
-RPcam2_upperHolesPos = 2.25;
-
-// offset for lower mounting holes
-RPcam2_lowerHolesPos = 14.5;
-
-// width of the camera module on the board
-RPcam2_cameraWidth = 8.52; 
-
-// height (y) of the camera module on the board
-RPcam2_cameraHeight = 8.4;
-
-// thickness of camera module plus mounting dealie
-RPcam2_cameraCubeThickness = 4.5; 
-
-// diameter of just the round part of the camera
-RPcam2_cameraDiameter = 7.3;
-
-// thickness of just the round part of the camera module
-RPcam2_cameraCylinderThickness = 2.4;
-
-// x offset to position the camera module on the board
-RPcam2_cameraXOffset = 0;
-
-// y offset to position the camera module on the board
-RPcam2_cameraYOffset = (RPcam2_height/2)-14;
-
+include <./RPcam2_vars.scad>;
 
 module Raspberry_Pi_Camera_v21(
     width = RPcam2_width,
@@ -90,7 +49,7 @@ module Raspberry_Pi_Camera_v21(
     cameraXOffset = RPcam2_cameraXOffset,
     cameraYOffset = RPcam2_cameraYOffset,
     cutout = false,
-    cutoutTolerance = 1,  // make cutout 1mm bigger for tolerance.
+    cutoutTolerance = RPcam2_cutoutTolerance,  // make cutout slightly bigger for tolerance.
     j2Width1 = 7,
     j2Width2 = 9,
     j2Length1 = 3.5,
