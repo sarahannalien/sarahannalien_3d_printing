@@ -1,6 +1,7 @@
 import serial
 import io
 import re
+import csv
 
 class Printer:
     """Sending to and receiving from 3D printer via serial port"""
@@ -9,7 +10,7 @@ class Printer:
         pass
     def __enter__(self):
         #print("ENTER")
-        self.serial_port = serial.Serial('COM8', 38400, timeout=2)
+        self.serial_port = serial.Serial('COM8', 19200, timeout=2)
         self.sio = io.TextIOWrapper(
             io.BufferedRWPair(self.serial_port, self.serial_port))
         #self.serial_port.open()
@@ -33,7 +34,8 @@ class Printer:
             lines.append(line)
             if line.startswith("ok"):
                 return lines
-        raise Exception("Too many lines!")    
+        print("!!!! Too many lines! May be truncated.")
+        return lines
 
     def cmd(self, cmd, comment="", echo=True):
         print()
@@ -52,48 +54,66 @@ def extractZProbe(linesFromG30):
         return (float(m.group(1)), float(m.group(2)), float(m.group(3)))
         #print("#### ", zvalue)
         #return zvalue
-    raise Exception("Couldn't find Z value")
+    print("!!!! Couldn't find Z value: ", linesFromG30)
+    return (-1.0, -1.0, 9999.0)   # FAIL. Prob comms problem
 
-bedLevelData = {}
 
-bedx = 310
-bedxstart = 20
-bedxend = 290
-
-bedy = 310
-bedystart = 20
-bedyend = 290
-
-stepsize = 80
+class Prober:
+    def __init__(self, printer,
+                 bedx = 310, bedxstart = 0, bedxend = None,
+                 bedy = 310, bedystart = 10, bedyend = 300,
+                 stepsize = 80,
+                 sensorXoffset = 30,
+                 sensorYoffset = 0     # actually about 3.5. not implementing for now.
+                 ):
+        self.p = printer
+        self.bedx = bedx
+        self.bedxstart = bedxstart
+        if bedxend is None: self.bedxend = self.bedx - sensorXoffset - 10
+        self.bedy = bedy
+        self.bedystart = bedystart
+        self.bedyend = bedyend
+        self.stepsize = stepsize
+        self.sensorXoffset = sensorXoffset
+        self.sensorYoffset = sensorYoffset
+        self.bedLevelData = {}
+    def prologue(self):
+        self.p.cmd("M503",       "Report initial status")
+        self.p.cmd("G29 D1",     "Turn off Unified Bed Leveling")
+        self.p.cmd("G28",        "Auto Home")
+        self.p.cmd("G90",        "Absolute positioning in logical coordinate space")
+        self.p.cmd("G21",        "Units in mm")        
+    def __probeOnePoint(self, x, y):
+        self.p.cmd(f"G0 F20000.0 X{x} Y{y} Z5", "move printhead")
+        zprobe = self.p.cmd("G30", "single z probe", echo=True)
+        (dummy_x, dummy_y, z) = extractZProbe(zprobe)
+        self.bedLevelData[(x,y)] = z
+        return z
+    def epilogue(self):
+        self.p.cmd("M503", "check status at end of commands")
+    def probeBed(self, filename):
+        with open(filename, 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            for y in range(self.bedystart, self.bedyend, self.stepsize):
+                for x in range(self.bedxstart, self.bedxend, self.stepsize):
+                    z = self.__probeOnePoint(x, y)
+                    csvwriter.writerow([x+self.sensorXoffset, y+self.sensorYoffset, z])
+            
 
 
 p = Printer()
+prober = Prober(p, stepsize=10)
 with p:
-    p.cmd("M503",       "Report initial status")
-    p.cmd("G29 D1",     "Turn off Unified Bed Leveling")
-    p.cmd("G28",        "Auto Home")
-    p.cmd("G90",        "Absolute positioning in logical coordinate space")
-    p.cmd("G21",        "Units in mm")
+    prober.prologue()
+    prober.probeBed("xyz_output_step10.csv")
+    prober.epilogue()
     
-    #for y in range(20,290,20):
-    #    for x in range(20,290,20):
-    #        print(f"x:{x}, y:{y}")
 
-    for y in range(bedystart, bedyend, stepsize):
-        for x in range(bedxstart, bedxend, stepsize):
-            p.cmd(f"G0 F20000.0 X{x} Y{y} Z5", "move printhead")
-            zprobe = p.cmd("G30", "single z probe", echo=False)
-            coords = extractZProbe(zprobe)
-            bedLevelData[(x,y)] = coords[2]
-            #print(zprobe)
+print(prober.bedLevelData)
 
-
-    p.cmd("M503", "check status at end of commands")
-
-print(bedLevelData)
-for y in range(bedystart, bedyend, stepsize):
-    for x in range(bedxstart, bedxend, stepsize):
-        z = bedLevelData[(x,y)]
+for y in range(prober.bedystart, prober.bedyend, prober.stepsize):
+    for x in range(prober.bedxstart, prober.bedxend, prober.stepsize):
+        z = prober.bedLevelData[(x,y)]
         print(f"{z:8.2f}", end="")
     print()
 print()
