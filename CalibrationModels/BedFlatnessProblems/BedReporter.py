@@ -6,27 +6,37 @@ import csv
 class Printer:
     """Sending to and receiving from 3D printer via serial port"""
     
-    def __init__(self):
-        pass
-    def __enter__(self):
-        #print("ENTER")
-        self.serial_port = serial.Serial('COM8', 19200, timeout=2)
+    def __init__(self, port='COM8', baudrate=9600, timeout=2):
+        self.port = port
+        self.baudrate = baudrate
+        self.timeout = timeout
+    def __openport(self):
+        self.serial_port = serial.Serial(port=self.port,
+            baudrate=self.baudrate, timeout=self.timeout)
         self.sio = io.TextIOWrapper(
             io.BufferedRWPair(self.serial_port, self.serial_port))
         #self.serial_port.open()
+    def __closeport(self):
+        self.serial_port.close()
+    def __enter__(self):
+        #print("ENTER")
+        self.__openport()
     def __exit__(self, type, value, tb):
         #print("EXIT")
-        self.serial_port.close()
-
+        self.__closeport()
+    def __reinit(self):
+        """Reinitialize communication after a read error"""
+        self.__closeport()
+        self.__openport()
     def send(self, cmd):
         cmdline = cmd
         print(f"SEND {cmdline}")
         self.sio.write(cmd + "\n")
         self.sio.flush()
-    def receive(self, echo=True):
+    def receive(self, echo=True, maxlines=50):
         n = 1
         lines = []
-        while n < 50:
+        while n < maxlines:
             line = self.sio.readline().rstrip('\n')
             #print("[", n, ":", line.strip(), "]")
             if echo: print(f"{n:04} {line}")
@@ -35,9 +45,12 @@ class Printer:
             if line.startswith("ok"):
                 return lines
         print("!!!! Too many lines! May be truncated.")
+        print("!!!! Reinitializing")
+        self.__reinit()
+        print("!!!! Reinitializing Complete.")
         return lines
 
-    def cmd(self, cmd, comment="", echo=True):
+    def cmd(self, cmd, comment="", echo=True, maxlines=50):
         print()
         print(f"SEND {cmd}   ({comment})")
         self.sio.write(cmd + "\n")
@@ -85,10 +98,13 @@ class Prober:
         self.p.cmd("G21",        "Units in mm")        
     def __probeOnePoint(self, x, y):
         self.p.cmd(f"G0 F20000.0 X{x} Y{y} Z5", "move printhead")
-        zprobe = self.p.cmd("G30", "single z probe", echo=True)
+        zprobe = self.p.cmd("G30", "single z probe", echo=True, maxlines=7)
         (dummy_x, dummy_y, z) = extractZProbe(zprobe)
-        self.bedLevelData[(x,y)] = z
-        return z
+        if z == 9999.0:
+            return None
+        else:
+            self.bedLevelData[(x,y)] = z
+            return z
     def epilogue(self):
         self.p.cmd("M503", "check status at end of commands")
     def probeBed(self, filename):
@@ -96,16 +112,26 @@ class Prober:
             csvwriter = csv.writer(csvfile)
             for y in range(self.bedystart, self.bedyend, self.stepsize):
                 for x in range(self.bedxstart, self.bedxend, self.stepsize):
-                    z = self.__probeOnePoint(x, y)
+                    zvalues = []
+                    tries = 0
+                    z = None
+                    while z is None and tries < 3:
+                        z1 = self.__probeOnePoint(x, y)
+                        z2 = self.__probeOnePoint(x, y)
+                        if z1 is not None and z2 is not None:
+                            z = (z1 + z2)/2
+                        tries += 1
+                    if z is None:
+                        z = 9999.0
                     csvwriter.writerow([x+self.sensorXoffset, y+self.sensorYoffset, z])
             
 
 
 p = Printer()
-prober = Prober(p, stepsize=10)
+prober = Prober(p, stepsize=40)
 with p:
     prober.prologue()
-    prober.probeBed("xyz_output_step10.csv")
+    prober.probeBed("xyz_output_step40_shim_proto1.csv")
     prober.epilogue()
     
 
