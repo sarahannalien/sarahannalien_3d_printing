@@ -74,7 +74,7 @@ def extractZProbe(linesFromG30):
 class Prober:
     def __init__(self, printer,
                  bedx = 310, bedxstart = 0, bedxend = None,
-                 bedy = 310, bedystart = 10, bedyend = 300,
+                 bedy = 310, bedystart = 15, bedyend = 300,
                  stepsize = 80,
                  sensorXoffset = 30,
                  sensorYoffset = 0     # actually about 3.5. not implementing for now.
@@ -97,7 +97,7 @@ class Prober:
         self.p.cmd("G90",        "Absolute positioning in logical coordinate space")
         self.p.cmd("G21",        "Units in mm")        
     def __probeOnePoint(self, x, y):
-        self.p.cmd(f"G0 F20000.0 X{x} Y{y} Z5", "move printhead")
+        self.p.cmd(f"G0 F20000.0 X{x} Y{y}", "move printhead")
         zprobe = self.p.cmd("G30", "single z probe", echo=True, maxlines=7)
         (dummy_x, dummy_y, z) = extractZProbe(zprobe)
         if z == 9999.0:
@@ -107,31 +107,33 @@ class Prober:
             return z
     def epilogue(self):
         self.p.cmd("M503", "check status at end of commands")
-    def probeBed(self, filename):
+    def probeBed(self, filename, numSamples=1, maxTries=3):
         with open(filename, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             for y in range(self.bedystart, self.bedyend, self.stepsize):
                 for x in range(self.bedxstart, self.bedxend, self.stepsize):
                     zvalues = []
                     tries = 0
-                    z = None
-                    while z is None and tries < 3:
-                        z1 = self.__probeOnePoint(x, y)
-                        z2 = self.__probeOnePoint(x, y)
-                        if z1 is not None and z2 is not None:
-                            z = (z1 + z2)/2
-                        tries += 1
-                    if z is None:
+                    while len(zvalues) < numSamples and tries < maxTries:
+                         z = self.__probeOnePoint(x, y)
+                         tries += 1
+                         if z is None:
+                             pass # will already have reinitialized
+                         else:
+                             zvalues.append(z)
+                    if len(zvalues)==0:
                         z = 9999.0
+                    else:
+                        z = sum(zvalues)/len(zvalues)
                     csvwriter.writerow([x+self.sensorXoffset, y+self.sensorYoffset, z])
             
 
 
 p = Printer()
-prober = Prober(p, stepsize=40)
+prober = Prober(p, stepsize=30)
 with p:
     prober.prologue()
-    prober.probeBed("xyz_output_step40_shim_proto1.csv")
+    prober.probeBed("xyz_output_step30_working.csv")
     prober.epilogue()
     
 
