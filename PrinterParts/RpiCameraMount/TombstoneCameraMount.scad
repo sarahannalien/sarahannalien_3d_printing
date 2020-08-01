@@ -44,6 +44,23 @@ module TombstoneCameraMount(
         rotate([90,0,0]) Raspberry_Pi_Camera_v21(cutout=true, $fn=36);
     }
     
+    module cableCutout(
+            cyDiam = 200,
+            cyThickness = 4,
+            cyWidth = 20, // 16mm for cable + 4mm tolerance
+    ) {
+        fx = 0;
+        fy = 0.5;
+        fz = 26;
+        translate([fx, (cyDiam/2) + fy, fz])
+        rotate([90,0,90]) {
+            difference() {
+                cylinder(h=cyWidth, d=cyDiam, center=true);
+                cylinder(h=cyWidth + 0.1, d=cyDiam-cyThickness, center=true);
+            }
+        }
+    }
+    
     module cableCover() {
         echo("B", RPcam2_height);
         v = lensHeight-(RPcam2_height/2) ;
@@ -51,12 +68,14 @@ module TombstoneCameraMount(
         color("lightblue")
         difference() {
             translate([ 0, 0, v/2 ])
-                cube([w,thickness,v],center=true);
-            translate([ 0, -coverThickness, v/2 ])
-                cube([w-(2*coverThickness),thickness,v*1.1],center=true);
-            translate([ 0, 0, 0 ])
-                cube([w-(2*coverThickness),thickness*1.1,2],center=true);
+                cube([w-0.1,thickness,v],center=true);
+            #cableCutout($fn=180);
+            //translate([ 0, -coverThickness, v/2 ])
+            //    cube([w-(2*coverThickness),thickness,v*1.1],center=true);
+            //translate([ 0, 0, 0 ])
+            //    cube([w-(2*coverThickness),thickness*1.1,2],center=true);
         }
+        
     }
     
     difference() {
