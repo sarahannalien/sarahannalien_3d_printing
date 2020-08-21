@@ -45,12 +45,12 @@ module TombstoneCameraMount(
     }
     
     module cableCutout(
-            cyDiam = 200,
-            cyThickness = 4,
+            cyDiam = 170,
+            cyThickness = 6,
             cyWidth = 20, // 16mm for cable + 4mm tolerance
     ) {
         fx = 0;
-        fy = 0.5;
+        fy = -1.0;
         fz = 26;
         translate([fx, (cyDiam/2) + fy, fz])
         rotate([90,0,90]) {
@@ -69,7 +69,7 @@ module TombstoneCameraMount(
         difference() {
             translate([ 0, 0, v/2 ])
                 cube([w-0.1,thickness,v],center=true);
-            #cableCutout($fn=180);
+            
             //translate([ 0, -coverThickness, v/2 ])
             //    cube([w-(2*coverThickness),thickness,v*1.1],center=true);
             //translate([ 0, 0, 0 ])
@@ -93,6 +93,8 @@ module TombstoneCameraMount(
         }
         cutoutYfudgeFactor = 5.5;  // fixme?
         translate([0,cutoutYfudgeFactor,lensHeight]) rpiCamCutout();
+        #translate([0,(thickness/2), mountingTabThickness ]) 
+            cableCutout($fn=180);
     }
 }
 echo("C",RPcam2_height);
