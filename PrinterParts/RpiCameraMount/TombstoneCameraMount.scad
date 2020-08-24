@@ -4,6 +4,12 @@ use <../../lib/RPcam2.scad>;
 
 echo("Z", RPcam2_height);
 
+LED_Ring_Inner = 23.2;
+
+LED_Ring_Outer = 37.7;
+
+LED_Ring_Thickness = 3.25;
+
 module TombstoneCameraMount(
     width=43, 
     height=92,
@@ -19,6 +25,44 @@ module TombstoneCameraMount(
     coverBottomCutoutHeight = 3
 ) {
     echo("A", RPcam2_height);
+   
+    module ledRing(adjOuter=1.05, adjInner=0.95) {
+        difference() {
+            cylinder(d=LED_Ring_Outer*adjOuter, h=LED_Ring_Thickness, center=true);
+            cylinder(d=LED_Ring_Inner*adjInner, h=LED_Ring_Thickness*1.1, center=true);
+        }
+    }
+    module ledUnderRing(adjOuter=1.05, adjInner=0.95) {
+        ledRing(adjOuter=0.9, adjInner=1.1);
+    }
+    module ledWiresCutout() {
+        //cylinder(d=2, h=50, center=true);
+        cube([4,2,50],center=true);
+    }
+    module ledLipFirstIdea() {
+        
+        #rotate([0,0,-135]) rotate_extrude(angle=90,convexity=10) {
+            translate([1,1,0]) square([0.5,1],center=false);
+        }
+    }
+    module ledLip() {
+        intersection() {
+            difference() {
+                cylinder(d1=LED_Ring_Outer*1.5, d2=LED_Ring_Outer*0.97, h=5, center=true);
+                cylinder(d=LED_Ring_Outer*0.97, h=5.1, center=true);
+                
+            }
+            rotate([0,0,-135]) cube([LED_Ring_Outer, LED_Ring_Outer, LED_Ring_Outer], center=false);
+        }
+    }
+    
+    module lensShroud(outer1=LED_Ring_Inner*1.2, outer2=15,inner=12, length=8) {
+        difference() {
+            cylinder(d1=outer1, d2=outer2, h=length, center=true);
+            cylinder(d=inner, h=length*1.1, center=true);
+        }
+    }
+   
     module mountingTabs() {
         wx = width + (2*extrusionSize);
         e2 = extrusionSize/2;
@@ -78,6 +122,10 @@ module TombstoneCameraMount(
         
     }
     
+    module bottomReinforcement() {
+        scale([1,2,1]) cylinder(d=5, h=width, center=true);
+    }
+    
     difference() {
         union() {
             translate([0,((extrusionSize-thickness)/2)-2,mountingTabThickness]) 
@@ -90,11 +138,31 @@ module TombstoneCameraMount(
             translate([0,(thickness/2), 
                     mountingTabThickness ]) 
                 cableCover();
+            translate([0,-0.75,lensHeight-(mountingTabThickness/2)]) 
+                rotate([90,0,0])
+                    lensShroud();
+            translate([0,-1,lensHeight-(mountingTabThickness/2)]) 
+                rotate([90,0,0])
+                    ledLip();
+            translate([0,0,mountingTabThickness]) rotate([0,90,0]) bottomReinforcement();
+            
         }
         cutoutYfudgeFactor = 5.5;  // fixme?
         translate([0,cutoutYfudgeFactor,lensHeight]) rpiCamCutout();
-        #translate([0,(thickness/2), mountingTabThickness ]) 
+        translate([0,(thickness/2), mountingTabThickness ]) 
             cableCutout($fn=180);
+        translate([0,-.4,lensHeight-(mountingTabThickness/2)]) 
+                rotate([90,0,0]) 
+                    ledRing();
+        translate([0,-0.05,lensHeight-(mountingTabThickness/2)]) 
+                rotate([90,0,0]) 
+                    ledUnderRing();
+        v = lensHeight-(RPcam2_height/2) ;
+        w = RPcam2_width + RPcam2_cutoutTolerance;
+        wTweak = 2;
+        vTweak = 0.5;
+        translate([(w/2)-wTweak,0,v+vTweak])rotate([90,0,0]) ledWiresCutout();
+        translate([-(w/2)+wTweak,0,v+vTweak])rotate([90,0,0]) ledWiresCutout();
     }
 }
 echo("C",RPcam2_height);
