@@ -7,7 +7,7 @@ thickness = 2.4;
 // how deep into our parent shelf 
 depth = 50;
 
-width = 80;
+width = 90;
 
 
 
@@ -18,12 +18,12 @@ module hangingShelf(
     t=thickness, d=depth, w=width,
     
     // Usable height of each shelf
-    s1height = 30, s2height = 20, s3height = 10,
+    s1height = 17, s2height = 24, s3height = 18,
     
     // offsets control how far out the shelf will stick
     // compared to the part that slides onto the parent
     // shelf. Use negative numbers to inset.
-    s1Offset = 0, s2Offset = 10, s3Offset = 20) 
+    s1Offset = 10, s2Offset = 25, s3Offset = 25) 
 {
     x0 = 0;
     x1 = t;
