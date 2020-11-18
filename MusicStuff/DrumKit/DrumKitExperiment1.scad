@@ -62,11 +62,11 @@ module DrumCylinder(d=100, h=40, thickness=4,
         rotate([0,0,ang]) 
             translate([t,d/2,(-h/2)+mbSize/2]) 
                 rotate([90,0,0]) 
-                    cylinder(d=mbHoleDiameter, h=35.5*thickness, center=true);
+                    cylinder(d=mbHoleDiameter, h=35.5*thickness, center=true, $fn=36);
         rotate([0,0,ang]) 
             translate([-t,d/2,(-h/2)+mbSize/2]) 
                 rotate([90,0,0]) 
-                    cylinder(d=mbHoleDiameter, h=35.5*thickness, center=true);
+                    cylinder(d=mbHoleDiameter, h=35.5*thickness, center=true, $fn=36);
     }
     
     module headMount(ang) {
@@ -81,7 +81,14 @@ module DrumCylinder(d=100, h=40, thickness=4,
         rotate([0,0,ang]) 
             translate([(d/2) - (thickness/3) + (HeadMountX/2),0,z]) 
                 // rotate([90,0,0]) 
-                    cylinder(d=mbHoleDiameter, h=3.5*thickness, center=true);
+                    cylinder(d=mbHoleDiameter, h=3.5*thickness, center=true, $fn=36);
+    }
+    
+    module stressReliefHole(ang) {
+        rotate([0,0,ang]) 
+            translate([0,d/2,(-h/2)+(2*thickness/2)-0.1]) 
+                rotate([90,0,0]) 
+                    cube([2*thickness,2*thickness,4*thickness], center=true);
     }
     
     module mountingBlock(ang) {
@@ -103,6 +110,7 @@ module DrumCylinder(d=100, h=40, thickness=4,
         }
         for (ang=[0:360/mbCount:360-1]) mountingHole(ang);
         for (ang=[0:360/hmCount:360-1]) headHole(ang+hmOffsetAngle);
+        //for (ang=[0:360/mbCount:360-1]) stressReliefHole(ang+hmOffsetAngle);
     }
 }
 
@@ -117,7 +125,7 @@ module DrumCylinder(d=100, h=40, thickness=4,
 // we're not doing the right calculations for this, just adding
 // a little slop to make it work out!)
 //
-DrumCylinder(d=200, $fn=180);
+DrumCylinder(d=110, $fn=180);
 
 
 //HeadMountingBracket();
